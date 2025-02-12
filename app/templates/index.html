@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h2>Menu</h2>
+            <div class="card">
+                <div class="card-body">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Menu Name</th>
+                                <th>Menu Link</th>
+                                <th>Menu Icon</th>
+                                <th>Priority</th>
+                                <th>Parent Menu</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in menu_items %}
+                            <tr>
+                                <td>{{ item.id }}</td>
+                                <td>{{ item.name }}</td>
+                                <td>{{ item.link }}</td>
+                                <td><i class="{{ item.icon }}"></i></td>
+                                <td>{{ item.priority }}</td>
+                                <td>{{ item.parent_menu }}</td>
+                                <td><span class="badge bg-success">{{ item.status }}</span></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
