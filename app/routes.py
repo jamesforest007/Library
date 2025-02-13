@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, redirect, url_for, request
 from flask_login import login_required
 from app.models import Book, db
+from pdb import set_trace
 
 # Create a blueprint named 'main'
 # This blueprint will handle all the main routes of our application
@@ -24,9 +25,17 @@ def index():
     ]
     return render_template('index.html', menu_items=menu_items)
 
+
+@main.route('/dashboard')
+@login_required
+def dashboard():  
+    return redirect(url_for('main.index'))
+
+
 @main.route('/books')
 @login_required
 def books():
+   
     books = Book.query.all()
     return render_template('books.html', books=books)
 

@@ -3,20 +3,24 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy  # For database operations
 from flask_login import LoginManager    # For handling user authentication
 from config import Config
+from flask_debugtoolbar import DebugToolbarExtension
 
 # Initialize Flask extensions
 db = SQLAlchemy()  # Database instance
 login_manager = LoginManager()  # Login manager instance
+toolbar = DebugToolbarExtension()
 
 def create_app():
     # Create Flask application instance
     app = Flask(__name__)
     # Load configuration from Config class
     app.config.from_object(Config)
+    app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = False
 
     # Initialize extensions with app
     db.init_app(app)
     login_manager.init_app(app)
+    toolbar.init_app(app)
     # Set the login view for unauthorized users
     login_manager.login_view = 'auth.login'
 
