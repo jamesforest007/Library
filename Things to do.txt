@@ -1,0 +1,6 @@
+things to do:
+1. email function
+2. webscraping
+3. big data (azure)
+4. local database integration with big model
+5. model tech learning
