@@ -1,8 +1,9 @@
 # Import necessary Flask extensions and modules
+import os
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy  # For database operations
 from flask_login import LoginManager    # For handling user authentication
-from config import Config
+from config import DevelopmentConfig, ProductionConfig
 from flask_debugtoolbar import DebugToolbarExtension
 
 # Initialize Flask extensions
@@ -13,27 +14,25 @@ toolbar = DebugToolbarExtension()
 def create_app():
     # Create Flask application instance
     app = Flask(__name__)
-    # Load configuration from Config class
-    app.config.from_object(Config)
-    app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = False
-
-    # Initialize extensions with app
+    # Choose config based on environment
+    config = DevelopmentConfig if os.environ.get('FLASK_ENV') == 'development' else ProductionConfig
+    app.config.from_object(config)
+    
+    # Initialize extensions
     db.init_app(app)
     login_manager.init_app(app)
-    toolbar.init_app(app)
-    # Set the login view for unauthorized users
-    login_manager.login_view = 'auth.login'
-
-    # Create database tables within app context
-    with app.app_context():
-        from app import models  # Import models here
-        db.create_all()        # Creates tables if they don't exist
-
-    # Register blueprints (modular components of the app)
-    from app.routes import main    # Import the main blueprint
-    from app.auth import auth      # Import the auth blueprint
     
-    app.register_blueprint(main)   # Register main routes (handles /)
-    app.register_blueprint(auth)   # Register auth routes (handles /login, /logout)
-
+    # Set login view for unauthorized users
+    login_manager.login_view = 'auth.login'
+    
+    # Create database tables
+    with app.app_context():
+        db.create_all()
+    
+    # Register blueprints
+    from app.routes import main
+    from app.auth import auth
+    app.register_blueprint(main)
+    app.register_blueprint(auth)
+    
     return app 
