@@ -4,3 +4,4 @@ things to do:
 3. big data (azure)
 4. local database integration with big model
 5. model tech learning
+6.
