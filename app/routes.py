@@ -1,9 +1,10 @@
-from flask import Blueprint, render_template, redirect, url_for, request, abort, current_app
+from flask import Blueprint, render_template, redirect, url_for, request, abort, current_app, send_file, jsonify
 from flask_login import login_required, current_user
 from app.models import Company, db, User, TEAM_CHOICES
 from werkzeug.security import generate_password_hash
 from app.utils import admin_required
 from functools import wraps
+import datetime
 
 # Define sector and industry choices
 SECTOR_CHOICES = {
@@ -213,4 +214,43 @@ def example():
     
     # Use in pagination
     page_size = current_app.config['ITEMS_PER_PAGE']
-    return f"Config values: {secret}, {db_uri}, {page_size}" 
+    return f"Config values: {secret}, {db_uri}, {page_size}"
+
+@main.route('/company/download-excel')
+@login_required
+def download_company_excel():
+    # Generate Excel file
+    excel_data = Company.export_to_excel()
+    
+    # Create response with Excel file
+    timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+    filename = f'companies_{timestamp}.xlsx'
+    
+    return send_file(
+        excel_data,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        as_attachment=True,
+        download_name=filename  # For newer Flask versions
+    )
+
+@main.route('/company/upload-excel', methods=['POST'])
+@login_required
+def upload_company_excel():
+    if 'excel_file' not in request.files:
+        return jsonify({'error': 'No file part'}), 400
+        
+    excel_file = request.files['excel_file']
+    
+    if excel_file.filename == '':
+        return jsonify({'error': 'No selected file'}), 400
+        
+    # Check if file is an Excel file
+    if not excel_file.filename.endswith(('.xls', '.xlsx')):
+        return jsonify({'error': 'File is not an Excel file'}), 400
+    
+    try:
+        # Process the Excel file
+        Company.import_from_excel(excel_file)
+        return jsonify({'success': 'Company data has been updated successfully'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500 

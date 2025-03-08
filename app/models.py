@@ -2,6 +2,8 @@
 from app import db, login_manager
 from flask_login import UserMixin, AnonymousUserMixin  # Add AnonymousUserMixin
 from datetime import datetime
+import pandas as pd
+import io
 
 # Add is_administrator to anonymous users
 class Anonymous(AnonymousUserMixin):
@@ -60,4 +62,77 @@ class Company(db.Model):
     email = db.Column(db.String(120))
     phone = db.Column(db.String(50))
     status = db.Column(db.String(50), default='Active')
-    created_at = db.Column(db.DateTime, default=datetime.utcnow) 
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    @classmethod
+    def export_to_excel(cls):
+        """
+        Export all company data to an Excel file.
+        """
+        # Query all companies
+        companies = cls.query.all()
+        
+        # Convert to DataFrame
+        data = []
+        for company in companies:
+            company_dict = {}
+            # Get all fields from the model
+            for column in cls.__table__.columns:
+                company_dict[column.name] = getattr(company, column.name)
+            data.append(company_dict)
+        
+        df = pd.DataFrame(data)
+        
+        # Create Excel file in memory
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df.to_excel(writer, index=False, sheet_name='Companies')
+        
+        output.seek(0)  # Go back to the start of the BytesIO object
+        return output
+
+    @classmethod
+    def import_from_excel(cls, excel_file):
+        """
+        Import company data from an Excel file and completely overwrite the existing
+        company records in the database.
+        """
+        # Read the Excel file
+        df = pd.read_excel(excel_file)
+        
+        try:
+            # Begin transaction
+            # Delete all existing companies
+            cls.query.delete()
+            
+            # Create new companies from Excel data
+            for _, row in df.iterrows():
+                # Convert row to dict
+                data = row.to_dict()
+                
+                # Clean up the data
+                for key, value in list(data.items()):
+                    # Remove NaN values
+                    if pd.isna(value):
+                        data[key] = None
+                        
+                    # Convert timestamps to datetime objects if needed
+                    if key == 'created_at' and value is not None:
+                        try:
+                            if isinstance(value, str):
+                                data[key] = datetime.fromisoformat(value.replace('Z', '+00:00'))
+                        except:
+                            # If conversion fails, use current time
+                            data[key] = datetime.utcnow()
+                
+                # Create new company record
+                new_company = cls(**data)
+                db.session.add(new_company)
+                
+            # Commit all changes
+            db.session.commit()
+            return True
+        except Exception as e:
+            # Roll back in case of error
+            db.session.rollback()
+            raise e 
